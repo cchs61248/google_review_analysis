@@ -1,0 +1,122 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+.DS_Store
+
+.env
+.env.*
+!*.env.example
+
+.cursor/
+log/
+
+*.log
+
+.ipynb_checkpoints/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# 虛擬環境
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# 環境變數
+.env
+.env.local
+.env.*.local
+
+# 日誌檔案
+*.log
+logs/
+
+# Playwright
+playwright-report/
+test-results/
+.playwright/
+
+# 資料檔案
+*.csv
+*.json
+*.xlsx
+data/
+output/
+
+# 瀏覽器 profile
+browser_profile/
+user_data/
+my_profile/
+
+# 計畫檔案
+plans/
+
+# 測試覆蓋率
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre
+.pyre/
+
+# 臨時檔案
+*.tmp
+*.bak
+*.backup
+~*
