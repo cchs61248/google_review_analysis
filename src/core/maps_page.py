@@ -82,7 +82,7 @@ class MapsPageHandler:
                             tab_clicked = True
                             break
             
-            # 策略 D: 文字完全匹配（最後手段）
+            # 策略 D: 文字完全匹配
             if not tab_clicked:
                 for text in SELECTORS["review_tab_labels"]:
                     link = page.get_by_text(text, exact=True).first
@@ -91,8 +91,54 @@ class MapsPageHandler:
                         link.click(timeout=TIMEOUT_CLICK, force=True)
                         tab_clicked = True
                         break
+                        
+            # 策略 E: 特殊 class 選擇器 (針對手機版或新版無頭介面)
+            if not tab_clicked:
+                for text in SELECTORS["review_tab_labels"]:
+                    # 尋找 span 且包含 class aSAiSd 並有指定文字，或其父元素
+                    for selector in [
+                        f'div:has(span.aSAiSd:has-text("{text}"))',
+                        f'span.aSAiSd:has-text("{text}")',
+                        f'//div[contains(@class, "aep93e")]//span[text()="{text}"]',
+                        f'div.aep93e:has-text("{text}")' # 根據最新的 log 結構新增
+                    ]:
+                        element = page.locator(selector)
+                        if element.count() > 0:
+                            # 對於這個特定的 div，可能需要點擊它內部可點擊的部分，或者直接點擊 div
+                            element.first.scroll_into_view_if_needed(timeout=3000)
+                            element.first.click(timeout=TIMEOUT_CLICK, force=True)
+                            tab_clicked = True
+                            break
+                    if tab_clicked:
+                        break
+            
+            # 策略 F: 尋找任何包含「評論」文字的可點擊 div
+            if not tab_clicked:
+                for text in SELECTORS["review_tab_labels"]:
+                    # 在特定情境下（特別是行動版或 headless 時），按鈕可能只是一個普通的 div
+                    elements = page.locator(f'div:has-text("{text}")')
+                    count = elements.count()
+                    for i in range(count):
+                        el = elements.nth(i)
+                        # 檢查這個 div 是不是按鈕或分頁標籤（透過 class name 特徵或是 aria-role 等判斷太嚴格，
+                        # 我們可以嘗試尋找 class name 中包含 button 或 tab 相關的特徵，或者直接點擊最內層的元素）
+                        # 為了安全起見，我們只嘗試點擊那些相對獨立的區域
+                        try:
+                            # 檢查它是否可見且可點擊
+                            if el.is_visible():
+                                class_name = el.get_attribute("class") or ""
+                                # 常見的點擊元素 class 可能會有的特徵
+                                if "tab" in class_name.lower() or "button" in class_name.lower() or "aep93e" in class_name:
+                                    el.scroll_into_view_if_needed(timeout=1000)
+                                    el.click(timeout=2000, force=True)
+                                    tab_clicked = True
+                                    break
+                        except Exception:
+                            continue
+                    if tab_clicked:
+                        break
 
-            # 策略 E: 無頭模式下嘗試透過 URL 直接導向評論頁
+            # 策略 F: 無頭模式下嘗試透過 URL 直接導向評論頁
             if not tab_clicked and headless:
                 if "/maps/place/" in current_url:
                     # 移除 query string 並添加 /reviews
