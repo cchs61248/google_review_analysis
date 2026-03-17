@@ -151,9 +151,10 @@ def health():
         'message': 'Google Maps 評論分析器 API 運行中'
     })
 
+@app.route('/api/debug_info', methods=['GET'])
 @app.route('/api/debug', methods=['GET'])
-def debug():
-    """除錯資訊端點"""
+def debug_info():
+    """除錯資訊端點（debug_info）"""
     import platform
     import subprocess
 

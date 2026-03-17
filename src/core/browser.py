@@ -145,6 +145,8 @@ class PageNavigator:
             return
 
         try:
+            logger.debug(f"目前搜尋結果頁 URL: {current_url}")
+
             maps_url = None
 
             # 優先找商家專頁連結
@@ -154,11 +156,25 @@ class PageNavigator:
                 'a[data-url*="/maps/place/"]'
             ]:
                 loc = page.locator(selector)
-                if loc.count() > 0:
+                count = loc.count()
+                logger.debug(f"selector={selector} 找到元素數量: {count}")
+                if count > 0:
+                    # 紀錄前幾個候選連結，方便在 Railway log 中檢查實際 DOM 結構
+                    max_log_items = min(3, count)
+                    for i in range(max_log_items):
+                        try:
+                            href = loc.nth(i).get_attribute("href")
+                            data_url = loc.nth(i).get_attribute("data-url")
+                            logger.debug(
+                                f"  第 {i + 1} 個元素 href={href} data-url={data_url}"
+                            )
+                        except Exception as log_e:
+                            logger.debug(f"  讀取第 {i + 1} 個元素屬性失敗: {log_e}")
+
                     maps_url = loc.first.get_attribute("href") or loc.first.get_attribute("data-url")
                     if maps_url:
                         break
-            
+
             if maps_url and "/maps/" in maps_url:
                 maps_url_abs = urljoin(current_url, maps_url)
                 logger.info(f"從搜尋結果頁跳轉到 Maps: {maps_url_abs}")
@@ -187,7 +203,14 @@ class PageNavigator:
                 encoded_query = urllib.parse.quote(query_str)
                 maps_search_url = f"https://www.google.com/maps/search/{encoded_query}"
 
-                logger.info(f"透過關鍵字跳轉至 Maps: {maps_search_url[:80]}...")
+                logger.info(f"透過關鍵字跳轉至 Maps: {maps_search_url}")
+                # 在跳轉前記錄目前搜尋頁的一小段 HTML，方便檢查 Railway 上實際 DOM 結構
+                try:
+                    html_snippet = page.content()[:4000]
+                    logger.debug(f"搜尋結果頁 HTML 片段（前 4000 字元）:\n{html_snippet}")
+                except Exception as html_e:
+                    logger.debug(f"擷取搜尋結果頁 HTML 失敗: {html_e}")
+
                 page.goto(maps_search_url, timeout=TIMEOUT_PAGE_LOAD)
 
                 # 等待跳轉完成並可能是搜尋結果列表，或是直接進入店家
