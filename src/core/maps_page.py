@@ -26,6 +26,68 @@ class MapsPageHandler:
         time.sleep(wait_sec)
 
     @staticmethod
+    def open_reviews_from_summary(page: Page, headless: bool = False) -> bool:
+        """
+        從地點資訊區塊點擊「X 則 Google 評論」進入評論頁
+
+        Args:
+            page: Playwright 頁面對象
+            headless: 是否為無頭模式
+
+        Returns:
+            是否成功點擊並進入評論頁
+        """
+        try:
+            MapsPageHandler._wait_for_page_ready(page, headless)
+
+            logger.info("嘗試從摘要區塊點擊「Google 評論」連結")
+
+            candidates = []
+
+            # 依據你提供的 HTML 結構，優先尋找 a[role="button"] 內含「Google 評論」文字
+            selectors = [
+                'a[role="button"]:has(span:has-text("Google 評論"))',
+                'a[role="button"]:has(span:has-text("Google reviews"))',
+                'a[data-fid][role="button"]:has(span:has-text("評論"))',
+            ]
+
+            for selector in selectors:
+                loc = page.locator(selector)
+                count = loc.count()
+                logger.debug(f"open_reviews_from_summary selector={selector} 找到元素數量: {count}")
+                if count > 0:
+                    candidates.append(loc.first)
+
+            # 備援：直接找內含「則 Google 評論」文字的連結
+            if not candidates:
+                text_variants = ["則 Google 評論", "Google 評論", "Google reviews"]
+                for text in text_variants:
+                    loc = page.locator(f'a:has(span:has-text("{text}"))')
+                    count = loc.count()
+                    logger.debug(f"open_reviews_from_summary text={text} 找到元素數量: {count}")
+                    if count > 0:
+                        candidates.append(loc.first)
+                        break
+
+            if not candidates:
+                logger.warning("找不到「Google 評論」按鈕，改用舊的評論分頁流程")
+                return False
+
+            target = candidates[0]
+            target.scroll_into_view_if_needed(timeout=3000)
+            time.sleep(0.5)
+            target.click(timeout=TIMEOUT_CLICK, force=True)
+            logger.info("已點擊「Google 評論」按鈕，等待評論頁載入")
+
+            MapsPageHandler._wait_for_page_ready(page, headless)
+            time.sleep(2 if headless else 1)
+            return True
+
+        except Exception as e:
+            logger.warning(f"從摘要區塊進入評論頁時發生錯誤: {e}")
+            return False
+
+    @staticmethod
     def switch_to_reviews_tab(page: Page, headless: bool = False) -> bool:
         """
         切換到評論分頁
@@ -216,6 +278,30 @@ class MapsPageHandler:
             if headless:
                 time.sleep(2)
 
+            logger.info("嘗試直接點擊「最新」排序項目")
+
+            # 1) 先直接尋找你提供的 div 結構
+            newest_div = page.locator(
+                'div.niO4u.VDgVie.SlP8xc span.pAn7ne span:has-text("最新")'
+            )
+            if newest_div.count() == 0:
+                # class 順序可能不同，改用 contains 的方式
+                newest_div = page.locator(
+                    'div.niO4u.VDgVie.SlP8xc >> span.pAn7ne span:has-text("最新")'
+                )
+
+            if newest_div.count() > 0:
+                target = newest_div.first
+                target.scroll_into_view_if_needed(timeout=3000)
+                time.sleep(0.5)
+                target.click(timeout=TIMEOUT_CLICK, force=True)
+                logger.info("已直接點擊「最新」排序項目")
+                time.sleep(3 if headless else 2)
+                return True
+
+            # 2) 若找不到上述結構，再退回舊的排序按鈕 + 選單邏輯
+            logger.info("找不到直接的「最新」div，退回舊的排序按鈕邏輯")
+
             sort_btn = None
             for selector in [
                 f'button:has-text("{SELECTORS["sort_button"]}")',
@@ -281,7 +367,7 @@ class MapsPageHandler:
                     logger.info("無頭模式：繼續使用預設排序...")
                     return True
                 return False
-                
+
         except Exception as e:
             logger.warning(f"設定排序時發生錯誤: {e}，使用預設排序")
             return headless  # 無頭模式下返回 True 以繼續執行

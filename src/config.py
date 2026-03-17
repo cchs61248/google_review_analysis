@@ -67,9 +67,23 @@ SELECTORS = {
     "review_tab_labels": ["評論", "Reviews"],
     "sort_button": "排序",
     "sort_newest": ["最新", "Newest"],
-    "review_item": 'div[data-review-id]',
-    "more_button": ['button[aria-label^="查看更多"]', 'button[aria-label*="More"]', 'button:has-text("更多")'],
-    "rating": ['span[role="img"][aria-label*="星"]', 'span[role="img"][aria-label*="star"]'],
+    # 評論外層容器（含頭像、名稱、星數、時間與文字等）
+    "review_item": 'div.bwb7ce',
+    # 展開完整評論的「更多」按鈕／連結
+    "more_button": [
+        'a.MtCSLb[role="button"]',                 # e.g. <a class="MtCSLb" ...>更多</a>
+        'button[aria-label^="查看更多"]',
+        'button[aria-label*="More"]',
+        'button:has-text("更多")',
+        'a[role="button"]:has-text("更多")',
+    ],
+    # 評分：優先使用你提供的 div 結構，再退回舊的 aria-label 星星
+    "rating": [
+        'div.k0Ysuc div.dHX2k[role="img"]',  # e.g. aria-label="獲評為 5.0 顆星 (最高 5 顆星)"
+        'span[role="img"][aria-label*="星"]',
+        'span[role="img"][aria-label*="star"]',
+    ],
+    # 評論文字：你提供的 OA1nbd 結構已在這裡
     "review_text": ["div.OA1nbd", "span.wiI7pd"],
     "suggested_dishes": "span.RfDO5c",
 }

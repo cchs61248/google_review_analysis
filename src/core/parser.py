@@ -64,7 +64,12 @@ class ReviewParser:
             self.seen_content.add(content_key)
             
             # 6. 組合結果
-            item = {"rating": rating, "text": text}
+            # 若有「建議的餐點」，一併加入評論文字中（同時保留欄位以相容既有流程）
+            merged_text = text
+            if suggested_dishes:
+                merged_text = f"{text}\n建議的餐點：{suggested_dishes}".strip()
+
+            item = {"rating": rating, "text": merged_text}
             if suggested_dishes:
                 item["suggested_dishes"] = suggested_dishes
             
@@ -102,7 +107,24 @@ class ReviewParser:
         for selector in SELECTORS["review_text"]:
             te = element.locator(selector).first
             if te.count() > 0:
-                text = te.inner_text().strip()
+                # 對於 OA1nbd 結構，需要排除只有「餐點/服務/氣氛」評分而沒有實際文字評論的情況
+                if selector == "div.OA1nbd":
+                    try:
+                        # 透過 JS 取得移除評分區塊 (.zMjRQd) 後剩餘的文字內容
+                        text_main = te.evaluate(
+                            """el => {
+                                const clone = el.cloneNode(true);
+                                const blocks = clone.querySelectorAll('.zMjRQd');
+                                blocks.forEach(b => b.remove());
+                                return clone.textContent.trim();
+                            }"""
+                        ) or ""
+                        text = text_main.strip()
+                    except Exception:
+                        text = te.inner_text().strip()
+                else:
+                    text = te.inner_text().strip()
+
                 if text:
                     break
         return text
@@ -120,6 +142,36 @@ class ReviewParser:
                     break
         except Exception:
             pass
+
+        # 新版結構：<div style="font-weight: 500;">建議的餐點</div>
+        #          <div aria-label="香蕉花沙拉 258, 洛葉炒牛肉 298">香蕉花沙拉 258, 洛葉炒牛肉 298</div>
+        if not suggested_dishes:
+            try:
+                # 盡量限制在評論內容區塊內，避免抓到「回應」工具列的提示文字
+                label_div = element.locator(
+                    'div.OA1nbd div[style*="font-weight: 500"]:has-text("建議的餐點")'
+                ).first
+                if label_div.count() > 0:
+                    value = label_div.evaluate(
+                        """el => {
+                            const next = el.nextElementSibling;
+                            if (!next) return '';
+                            const raw = (next.getAttribute('aria-label') || next.textContent || '').trim();
+                            return raw;
+                        }"""
+                    ) or ""
+
+                    # 清理常見的雜訊字串
+                    value = (value or "").replace("_", "").strip()
+                    if value and "懸停即可回應" not in value:
+                        suggested_dishes = value
+            except Exception:
+                pass
+
+        # 最後再做一次防呆：避免把「回應」提示或空值當成餐點
+        suggested_dishes = (suggested_dishes or "").replace("_", "").strip()
+        if not suggested_dishes or "懸停即可回應" in suggested_dishes:
+            return ""
         return suggested_dishes
     
     def is_review_seen(self, review_id: str) -> bool:

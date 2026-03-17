@@ -72,7 +72,7 @@ class ReviewScroller:
                 logger.info(f"收到停止信號，已收集 {len(reviews_data)} 則評論")
                 break
             
-            # 解析當前可見的評論
+            # 解析當前可見的評論（外層使用 review_item，內層再取 data-review-id）
             review_elements = self.page.locator(SELECTORS["review_item"]).all()
             added_this_round = 0
             
@@ -81,7 +81,15 @@ class ReviewScroller:
                     break
                 
                 # 檢查是否已處理過此評論
+                # data-review-id 通常在內層 div 上，先嘗試自身，再向內找
                 review_id = element.get_attribute("data-review-id")
+                if not review_id:
+                    try:
+                        inner = element.locator('div[data-review-id]').first
+                        if inner.count() > 0:
+                            review_id = inner.get_attribute("data-review-id")
+                    except Exception:
+                        review_id = None
                 if review_id and self.parser.is_review_seen(review_id):
                     continue
                 
@@ -123,7 +131,7 @@ class ReviewScroller:
     def _scroll_review_area(self) -> None:
         """滾動評論區域"""
         self.page.evaluate("""() => {
-            const el = document.querySelector('div[data-review-id]');
+            const el = document.querySelector('div.bwb7ce');
             if (!el) return;
             let p = el.parentElement;
             while (p && p !== document.body) {

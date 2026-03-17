@@ -59,13 +59,16 @@ class GoogleMapsScraper:
                 
                 # 2. 處理 Cookie 同意視窗
                 PageNavigator.handle_cookie_consent(page)
-                
-                # 3. 如果在搜尋結果頁，跳轉到 Maps
-                PageNavigator.redirect_from_search_to_maps(page)
-                
-                # 4. 切換到評論分頁
-                MapsPageHandler.switch_to_reviews_tab(page, headless=self.headless)
-                
+
+                # 3. 優先從地點摘要區塊的「X 則 Google 評論」進入評論頁
+                opened_from_summary = MapsPageHandler.open_reviews_from_summary(
+                    page, headless=self.headless
+                )
+
+                # 4. 若找不到摘要中的「Google 評論」按鈕，才使用舊的評論分頁切換邏輯
+                if not opened_from_summary:
+                    MapsPageHandler.switch_to_reviews_tab(page, headless=self.headless)
+
                 # 5. 設定排序為「最新」
                 MapsPageHandler.sort_by_newest(page, headless=self.headless)
                 

@@ -79,12 +79,14 @@ def analyze():
 
         # 2. 爬取評論
         try:
-            # Railway 環境中強制使用無頭模式
+            # Railway 環境中強制使用無頭模式，本地環境一律關閉無頭模式方便除錯
             is_railway = os.environ.get('RAILWAY_ENVIRONMENT') is not None
-            headless_mode = True if is_railway else not visible
-
             if is_railway:
+                headless_mode = True
                 logger.info("檢測到 Railway 環境，使用無頭模式")
+            else:
+                headless_mode = False
+                logger.info("本地環境測試，關閉無頭模式（顯示瀏覽器視窗）")
 
             scraper = GoogleMapsScraper(
                 headless=headless_mode,
