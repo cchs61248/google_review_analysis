@@ -13,14 +13,24 @@ def resolve_short_url(url: str) -> str:
     解析 Google Maps 短網址為完整網址
     
     Args:
-        url: Google Maps 短網址 (例如 https://maps.app.goo.gl/...)
+        url: Google Maps 網址
         
     Returns:
         解析後的完整網址，若發生錯誤則回傳原始網址
     """
-    # 如果已經是完整的 Google Maps 網址，直接返回
-    if "/maps/place/" in url or "google.com/maps" in url:
-        logger.info(f"已是完整 Maps 網址，無需解析: {url[:80]}...")
+    # 對於 Google Maps 的標準網址或短網址，直接讓 Playwright 的瀏覽器去處理
+    # 因為 Playwright 有完整的 JS 引擎，能完美處理 Google 的重新導向邏輯
+    # 使用 requests.get 反而容易被 Google 降級導向到一般的搜尋頁面
+    known_domains = [
+        "/maps/place/", 
+        "google.com/maps", 
+        "maps.app.goo.gl", 
+        "share.google",
+        "g.page"
+    ]
+    
+    if any(domain in url for domain in known_domains):
+        logger.info(f"網址將交由瀏覽器直接解析: {url[:80]}...")
         return url
     
     try:

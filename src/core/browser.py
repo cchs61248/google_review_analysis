@@ -137,7 +137,8 @@ class PageNavigator:
         Args:
             page: Playwright 頁面對象
         """
-        from urllib.parse import urljoin
+        from urllib.parse import urljoin, urlparse, parse_qs
+        import urllib.parse
         
         current_url = page.url
         if "google.com/search" not in current_url and "google.com.tw/search" not in current_url:
@@ -147,20 +148,41 @@ class PageNavigator:
             maps_url = None
             
             # 優先找商家專頁連結
-            loc = page.locator('a[href*="/maps/place/"]')
-            if loc.count() > 0:
-                maps_url = loc.first.get_attribute("href")
-            
-            # 備選：任何 Maps 連結
-            if not maps_url:
-                loc = page.locator('a[href*="google.com/maps"]')
+            for selector in [
+                'a[href*="/maps/place/"]',
+                'a[href*="google.com/maps"]',
+                'a[data-url*="/maps/place/"]'
+            ]:
+                loc = page.locator(selector)
                 if loc.count() > 0:
-                    maps_url = loc.first.get_attribute("href")
+                    maps_url = loc.first.get_attribute("href") or loc.first.get_attribute("data-url")
+                    if maps_url:
+                        break
             
             if maps_url and "/maps/" in maps_url:
                 maps_url_abs = urljoin(current_url, maps_url)
                 logger.info(f"從搜尋結果頁跳轉到 Maps: {maps_url_abs[:80]}...")
                 page.goto(maps_url_abs, timeout=TIMEOUT_PAGE_LOAD)
-                time.sleep(2)
+                time.sleep(3)
+                return
+                
+            # 備援方案：如果找不到地圖連結，提取搜尋關鍵字並直接構造 Google Maps 搜尋網址
+            logger.info("未找到直接的地圖連結，嘗試從 URL 提取查詢參數...")
+            parsed_url = urlparse(current_url)
+            query_params = parse_qs(parsed_url.query)
+            
+            if 'q' in query_params:
+                query_str = query_params['q'][0]
+                # 將關鍵字編碼並構造 maps search URL
+                encoded_query = urllib.parse.quote(query_str)
+                maps_search_url = f"https://www.google.com/maps/search/{encoded_query}"
+                
+                logger.info(f"透過關鍵字跳轉至 Maps: {maps_search_url[:80]}...")
+                page.goto(maps_search_url, timeout=TIMEOUT_PAGE_LOAD)
+                time.sleep(3)
+                return
+                
+            logger.warning("無法從搜尋結果頁找到跳轉 Maps 的方法，且無查詢參數。")
+            
         except Exception as e:
             logger.warning(f"無法從搜尋結果頁跳轉: {e}")
