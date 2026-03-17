@@ -109,7 +109,16 @@ class PageNavigator:
             url: 目標 URL
         """
         logger.info(f"導航至: {url}")
-        page.goto(url, timeout=TIMEOUT_PAGE_LOAD)
+        
+        # 驗證 URL 是否有效
+        if not url or not url.startswith("http"):
+            raise ValueError(f"無效的 URL: {url}")
+        
+        try:
+            page.goto(url, timeout=TIMEOUT_PAGE_LOAD, wait_until="domcontentloaded")
+        except Exception as e:
+            logger.error(f"導航失敗: {e}")
+            raise
         
     @staticmethod
     def handle_cookie_consent(page: Page) -> None:

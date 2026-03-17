@@ -1,292 +1,179 @@
-# Google Maps 評論分析器 - 部署指南
+# Railway 部署檢查清單
 
-## 重要說明
+## 部署前準備
 
-由於本專案使用 **Playwright** 進行瀏覽器自動化，需要完整的瀏覽器環境，因此：
+### 1. 環境變數設定
+在 Railway 專案設定中，確認以下環境變數已正確設定：
 
-- ❌ **Vercel 不支援**：Vercel 的無伺服器函數（Serverless Functions）無法運行 Playwright
-- ✅ **推薦使用 Railway**：Railway 提供完整的容器環境，支援 Playwright
-- ✅ **其他選擇**：Render、Fly.io、自架伺服器等也可以
+```bash
+# 必須設定
+OPENAI_API_KEY=your_openai_api_key_here
 
----
+# 可選設定
+OPENAI_BASE_URL=https://api.openai.com/v1  # 如果使用其他 API endpoint
+LLM_MODEL=gemini-3-flash                    # 你使用的模型名稱
+LOG_LEVEL=INFO                              # 日誌級別
+```
 
-## 方案一：部署到 Railway（推薦）
-
-Railway 提供免費額度，支援 Playwright，部署簡單。
-
-### 步驟
-
-#### 1. 準備專案
-
-確保專案中包含以下文件（已建立）：
-
-- `app.py` - Flask 應用主程式
+### 2. 確認檔案已推送
+確保以下檔案都已經提交到 Git 並推送：
+- `railway.json` - Railway 建置和部署配置
 - `requirements.txt` - Python 依賴套件
-- `runtime.txt` - Python 版本
-- `Procfile` - 啟動命令
-- `railway.json` - Railway 配置
-- `templates/` - 前端頁面
-- `static/` - 靜態資源
+- `app.py` - 主程式
+- `src/` 目錄下的所有原始碼
+- `templates/` 目錄（如果有前端頁面）
 
-#### 2. 推送到 Git 儲存庫
+## 部署步驟
 
-```powershell
-# 初始化 Git（如果還沒有）
-git init
+1. **推送程式碼到 GitHub**
+   ```bash
+   git add .
+   git commit -m "修正 Railway 部署問題"
+   git push
+   ```
 
-# 添加所有檔案
-git add .
+2. **在 Railway 中觸發部署**
+   - Railway 會自動檢測到程式碼變更
+   - 或在 Railway Dashboard 手動觸發部署
 
-# 提交變更
-git commit -m "準備部署到 Railway"
+3. **監控建置日誌**
+   - 檢查 Playwright 安裝是否成功
+   - 確認所有依賴套件都正確安裝
 
-# 推送到 GitHub（請先建立 GitHub 儲存庫）
-git remote add origin https://github.com/你的帳號/google_map.git
-git branch -M main
-git push -u origin main
+## 部署後測試
+
+### 1. 健康檢查
+```bash
+curl https://你的-railway-domain.railway.app/api/health
 ```
 
-#### 3. 在 Railway 上部署
-
-1. 前往 [Railway.app](https://railway.app/)
-2. 使用 GitHub 帳號登入
-3. 點擊 **"New Project"**
-4. 選擇 **"Deploy from GitHub repo"**
-5. 選擇你的 `google_map` 儲存庫
-6. Railway 會自動偵測 Python 專案並開始部署
-
-#### 4. 設定環境變數
-
-在 Railway 專案的 **Variables** 頁面中，添加以下環境變數：
-
-```
-OPENAI_API_KEY=你的_OpenAI_API_Key
-OPENAI_BASE_URL=https://api.openai.com/v1
-LLM_MODEL=gpt-4o
-LOG_LEVEL=INFO
+預期回應：
+```json
+{
+  "status": "ok",
+  "message": "Google Maps 評論分析器 API 運行中"
+}
 ```
 
-> **提示**：如果使用 Gemini，設定：
-> - `OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/`
-> - `OPENAI_API_KEY=你的_Gemini_API_Key`
-
-#### 5. 完成部署
-
-- Railway 會自動重新部署
-- 部署完成後，點擊 **"Settings"** → **"Generate Domain"** 獲取公開網址
-- 訪問該網址即可使用你的應用
-
-### Railway 部署注意事項
-
-1. **免費額度**：Railway 提供 $5/月的免費額度，足夠測試使用
-2. **啟動時間**：首次啟動需要安裝 Playwright 瀏覽器，可能需要 2-3 分鐘
-3. **超時設定**：已在 `Procfile` 中設定 300 秒超時，適合爬取大量評論
-4. **記憶體**：建議至少 512MB RAM（Railway 免費方案提供）
-
----
-
-## 方案二：本地運行（開發/測試）
-
-如果只是本地使用或開發測試，可以直接在本機運行：
-
-### 步驟
-
-#### 1. 啟動虛擬環境
-
-```powershell
-.\.venv\Scripts\Activate.ps1
+### 2. 除錯資訊檢查
+```bash
+curl https://你的-railway-domain.railway.app/api/debug
 ```
 
-#### 2. 安裝依賴
+檢查以下資訊：
+- `is_railway`: 應該是 `true`
+- `playwright_installed`: 應該是 `true`
+- `has_openai_key`: 應該是 `true`
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+### 3. 功能測試
+使用 Postman 或 curl 測試評論分析功能：
+
+```bash
+curl -X POST https://你的-railway-domain.railway.app/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "你的Google Maps網址",
+    "limit": 10
+  }'
 ```
 
-#### 3. 設定環境變數
+## 常見問題排除
 
-確保 `.env` 文件存在並包含：
+### 問題 1: 找不到評論分頁
+**症狀**: 日誌顯示「無法自動切換到評論分頁」
 
-```env
-OPENAI_API_KEY=你的_API_Key
-OPENAI_BASE_URL=https://api.openai.com/v1
-LLM_MODEL=gpt-4o
-LOG_LEVEL=INFO
+**可能原因**:
+- URL 解析錯誤
+- 頁面載入不完整
+- Google Maps 頁面結構變更
+
+**解決方法**:
+1. 檢查日誌中的 URL 解析結果是否正確
+2. 確認解析後的 URL 包含 `/maps/place/` 或 `/maps/`
+3. 如果是短網址問題，嘗試使用完整的 Google Maps URL
+
+### 問題 2: 找不到排序按鈕
+**症狀**: 日誌顯示「找不到排序按鈕」
+
+**影響**: 輕微，程式會使用預設排序繼續執行
+
+**說明**:
+- 在無頭模式下，如果找不到排序按鈕，程式會自動使用預設排序
+- 不會中斷爬取流程
+
+### 問題 3: Playwright 安裝失敗
+**症狀**: 建置日誌顯示 Playwright 相關錯誤
+
+**解決方法**:
+1. 確認 `railway.json` 中的 buildCommand 正確
+2. 檢查是否有網路連線問題
+3. 嘗試重新部署
+
+### 問題 4: 記憶體不足
+**症狀**: 容器崩潰或 OOM 錯誤
+
+**解決方法**:
+1. 升級 Railway 方案以獲得更多記憶體
+2. 減少 `max_reviews` 數量
+3. 確認 `railway.json` 中只使用 1 個 worker
+
+## 本地測試無頭模式
+
+在部署到 Railway 前，可以先在本地測試無頭模式：
+
+```bash
+# 啟動虛擬環境
+.venv\Scripts\Activate.ps1
+
+# 執行無頭模式測試
+.venv\Scripts\python.exe test_headless.py
 ```
 
-#### 4. 啟動應用
+輸入測試 URL 後，確認：
+1. URL 解析正確
+2. 可以成功切換到評論分頁
+3. 可以抓取到評論資料
 
-```powershell
-.\.venv\Scripts\python.exe app.py
+## 最佳化建議
+
+### 1. 調整超時時間
+如果 Railway 環境較慢，可以在 `src/config.py` 中增加超時時間：
+
+```python
+TIMEOUT_PAGE_LOAD = 90000  # 從 60000 增加到 90000
+TIMEOUT_SELECTOR = 15000   # 從 12000 增加到 15000
 ```
 
-#### 5. 訪問應用
+### 2. 增加等待時間
+在 `src/core/maps_page.py` 中的無頭模式等待時間已經增加，如果還是有問題可以進一步調整。
 
-開啟瀏覽器，訪問：
-- 電腦：http://127.0.0.1:5000
-- 手機：http://你的電腦IP:5000（例如：http://192.168.1.100:5000）
-
-> **如何查詢電腦 IP**：
-> ```powershell
-> ipconfig
-> ```
-> 找到「無線區域網路介面卡 Wi-Fi」的「IPv4 位址」
-
----
-
-## 方案三：部署到 Render
-
-Render 也是不錯的選擇，提供免費方案且支援 Playwright。
-
-### 步驟
-
-1. 前往 [Render.com](https://render.com/)
-2. 註冊並登入
-3. 點擊 **"New +"** → **"Web Service"**
-4. 連接你的 GitHub 儲存庫
-5. 設定：
-   - **Name**: `google-maps-analyzer`
-   - **Environment**: `Python 3`
-   - **Build Command**: `pip install -r requirements.txt && playwright install chromium && playwright install-deps chromium`
-   - **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300`
-6. 添加環境變數（與 Railway 相同）
-7. 點擊 **"Create Web Service"**
-
----
-
-## 方案四：使用 Docker 容器
-
-如果你熟悉 Docker，可以建立 Dockerfile 部署到任何支援容器的平台。
-
-### Dockerfile 範例
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# 安裝系統依賴
-RUN apt-get update && apt-get install -y \
-    wget \
-    gnupg \
-    && rm -rf /var/lib/apt/lists/*
-
-# 複製專案文件
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 安裝 Playwright 瀏覽器
-RUN playwright install chromium
-RUN playwright install-deps chromium
-
-# 複製應用程式
-COPY . .
-
-# 暴露端口
-EXPOSE 5000
-
-# 啟動命令
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--timeout", "300"]
+### 3. 使用更穩定的 URL
+建議使用完整的 Google Maps URL 而非短網址，格式如：
+```
+https://www.google.com/maps/place/店家名稱/@經度,緯度,zoom/...
 ```
 
-### 本地測試 Docker
+## 監控建議
 
-```powershell
-# 建立映像
-docker build -t google-maps-analyzer .
+1. **定期檢查日誌**
+   - 在 Railway Dashboard 查看應用程式日誌
+   - 注意警告和錯誤訊息
 
-# 運行容器
-docker run -p 5000:5000 \
-  -e OPENAI_API_KEY=你的_API_Key \
-  -e OPENAI_BASE_URL=https://api.openai.com/v1 \
-  -e LLM_MODEL=gpt-4o \
-  google-maps-analyzer
-```
+2. **設定警報**
+   - 在 Railway 設定健康檢查失敗警報
+   - 監控應用程式回應時間
 
----
+3. **效能監控**
+   - 記錄每次請求的處理時間
+   - 監控記憶體使用情況
 
-## 響應式設計驗證
+## 更新紀錄
 
-前端已使用響應式設計，支援：
-
-### 電腦瀏覽器
-- ✅ Chrome、Edge、Firefox、Safari
-- ✅ 最佳顯示寬度：1000px+
-
-### 手機瀏覽器
-- ✅ iOS Safari
-- ✅ Android Chrome
-- ✅ 自動調整佈局，適配小螢幕
-
-### 測試方式
-
-1. **電腦測試**：直接訪問 http://127.0.0.1:5000
-2. **手機測試**：
-   - 確保手機與電腦在同一 Wi-Fi 網路
-   - 查詢電腦 IP：`ipconfig`
-   - 手機訪問：http://電腦IP:5000
-
----
-
-## 常見問題
-
-### Q1: Railway 部署失敗怎麼辦？
-
-**A**: 檢查以下項目：
-1. 確認 `requirements.txt` 包含所有依賴
-2. 確認 `railway.json` 的 `buildCommand` 正確
-3. 查看 Railway 的 **"Deployments"** 頁面的日誌，找出錯誤訊息
-4. 確認環境變數已正確設定
-
-### Q2: 爬蟲為什麼這麼慢？
-
-**A**: 
-- Playwright 需要啟動完整瀏覽器，首次啟動較慢
-- 評論數量越多，爬取時間越長（通常 30 則評論需要 2-3 分鐘）
-- 雲端伺服器的網路速度可能較慢
-
-### Q3: 能不能部署到 Vercel？
-
-**A**: 
-- **不行**，Vercel 不支援 Playwright（無瀏覽器環境）
-- 如果只需要前端展示，可以修改為純靜態網站部署到 Vercel
-- 但爬蟲功能必須部署到支援容器的平台（Railway、Render 等）
-
-### Q4: 如何減少成本？
-
-**A**:
-1. 使用免費方案：Railway $5/月、Render 免費方案
-2. 優化爬取數量：減少每次爬取的評論數
-3. 本地運行：完全免費，但需要電腦持續開機
-4. 使用便宜的 LLM：改用 Gemini Flash（通常比 GPT-4 便宜）
-
-### Q5: 手機能直接使用嗎？
-
-**A**:
-- ✅ 前端完全支援手機瀏覽器
-- ✅ 響應式設計，自動調整佈局
-- ✅ 支援觸控操作
-- ⚠️ 手機直接爬取效能較差，建議使用雲端部署
-
----
-
-## 總結
-
-| 方案 | 優點 | 缺點 | 推薦程度 |
-|------|------|------|----------|
-| **Railway** | 簡單、免費額度、支援 Playwright | 免費額度有限 | ⭐⭐⭐⭐⭐ |
-| **Render** | 免費、穩定 | 冷啟動較慢 | ⭐⭐⭐⭐ |
-| **本地運行** | 完全免費、無限制 | 需要電腦開機 | ⭐⭐⭐ |
-| **Docker** | 靈活、可移植 | 需要容器知識 | ⭐⭐⭐ |
-| **Vercel** | 速度快、免費 | ❌ 不支援 Playwright | ❌ |
-
-**建議**：新手直接使用 **Railway**，最簡單且效果最好！
-
----
-
-## 需要幫助？
-
-如有問題，請檢查：
-1. 日誌文件：`log/scraper.log`
-2. Railway 的 Deployment Logs
-3. 瀏覽器開發者工具的 Console（F12）
+### 2026-03-17 修正項目
+1. ✅ 改善 URL 解析邏輯（使用 GET 而非 HEAD，增加驗證）
+2. ✅ 增加無頭模式等待時間
+3. ✅ 改善評論分頁切換容錯處理
+4. ✅ 改善排序按鈕容錯處理
+5. ✅ 新增 Railway 環境檢測
+6. ✅ 新增除錯端點 `/api/debug`
+7. ✅ 新增本地無頭模式測試腳本

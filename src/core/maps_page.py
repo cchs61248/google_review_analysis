@@ -17,10 +17,12 @@ class MapsPageHandler:
         """等待頁面完全就緒，無頭模式下給予更多時間"""
         page.wait_for_load_state("domcontentloaded")
         try:
-            page.wait_for_load_state("networkidle", timeout=10000)
+            page.wait_for_load_state("networkidle", timeout=15000)
         except Exception:
             pass
-        wait_sec = 4 if headless else 2
+        
+        # 無頭模式下（尤其是 Railway）需要更多時間讓 JavaScript 渲染
+        wait_sec = 5 if headless else 2
         time.sleep(wait_sec)
 
     @staticmethod
@@ -37,6 +39,13 @@ class MapsPageHandler:
         """
         try:
             MapsPageHandler._wait_for_page_ready(page, headless)
+            
+            # 先檢查是否已經在評論頁面
+            current_url = page.url
+            if "/reviews" in current_url or "reviews" in current_url.lower():
+                logger.info("已在評論頁面，無需切換")
+                time.sleep(2)
+                return True
             
             tab_clicked = False
             
@@ -85,9 +94,10 @@ class MapsPageHandler:
 
             # 策略 E: 無頭模式下嘗試透過 URL 直接導向評論頁
             if not tab_clicked and headless:
-                current_url = page.url
-                if "/maps/place/" in current_url and "/reviews" not in current_url:
-                    reviews_url = current_url.split("?")[0].rstrip("/") + "/reviews"
+                if "/maps/place/" in current_url:
+                    # 移除 query string 並添加 /reviews
+                    base_url = current_url.split("?")[0].rstrip("/")
+                    reviews_url = base_url + "/reviews"
                     logger.info(f"無頭模式備援：直接導向評論 URL: {reviews_url[:80]}")
                     page.goto(reviews_url, timeout=30000)
                     MapsPageHandler._wait_for_page_ready(page, headless)
@@ -95,15 +105,25 @@ class MapsPageHandler:
             
             if tab_clicked:
                 logger.info("成功切換到評論分頁")
-                wait_sec = 3 if headless else 2
+                wait_sec = 4 if headless else 2
                 time.sleep(wait_sec)
                 return True
             else:
                 logger.warning("無法自動切換到評論分頁")
+                # 在無頭模式下，即使找不到 tab，也嘗試繼續（可能頁面結構不同）
+                if headless:
+                    logger.info("無頭模式：嘗試繼續處理...")
+                    time.sleep(3)
+                    return True
                 return False
                 
         except Exception as e:
             logger.warning(f"切換評論分頁時發生錯誤: {e}")
+            # 無頭模式下容錯處理
+            if headless:
+                logger.info("無頭模式：忽略錯誤，嘗試繼續...")
+                time.sleep(3)
+                return True
             return False
     
     @staticmethod
@@ -121,7 +141,7 @@ class MapsPageHandler:
         try:
             # 無頭模式下多等一點讓元素渲染
             if headless:
-                time.sleep(1)
+                time.sleep(2)
 
             sort_btn = None
             for selector in [
@@ -141,11 +161,15 @@ class MapsPageHandler:
 
             if sort_btn is None:
                 logger.warning("找不到排序按鈕")
+                # 無頭模式下，即使找不到排序按鈕也繼續（可能預設就是最新排序）
+                if headless:
+                    logger.info("無頭模式：繼續使用預設排序...")
+                    return True
                 return False
             
             sort_btn.scroll_into_view_if_needed(timeout=3000)
             sort_btn.click(timeout=TIMEOUT_CLICK, force=True)
-            time.sleep(1.5 if headless else 1)
+            time.sleep(2 if headless else 1)
             
             # 嘗試選擇「最新」選項
             newest_clicked = False
@@ -175,15 +199,19 @@ class MapsPageHandler:
             
             if newest_clicked:
                 logger.info("成功設定排序為「最新」")
-                time.sleep(2.5 if headless else 2)
+                time.sleep(3 if headless else 2)
                 return True
             else:
                 logger.warning("無法設定排序為「最新」")
+                # 無頭模式下容錯
+                if headless:
+                    logger.info("無頭模式：繼續使用預設排序...")
+                    return True
                 return False
                 
         except Exception as e:
             logger.warning(f"設定排序時發生錯誤: {e}，使用預設排序")
-            return False
+            return headless  # 無頭模式下返回 True 以繼續執行
     
     @staticmethod
     def wait_for_reviews(page: Page, headless: bool = False) -> bool:

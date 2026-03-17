@@ -126,13 +126,23 @@ LOG_LEVEL=INFO
 
 **雲端部署：**
 
-詳見 `commands/deploy_vercel.md` 部署指南，推薦使用 Railway 平台。
+詳見 [`RAILWAY_DEPLOY.md`](RAILWAY_DEPLOY.md) 或 [`commands/deploy_vercel.md`](commands/deploy_vercel.md) 部署指南，推薦使用 Railway 平台。
 
 **特色：**
 - ✅ 響應式設計，支援電腦與手機瀏覽器
 - ✅ 現代化 UI，操作直覺
 - ✅ 即時顯示爬取進度與分析結果
 - ✅ 支援分頁切換查看原始評論與 AI 報告
+
+**API 端點：**
+
+| 端點 | 方法 | 說明 |
+|------|------|------|
+| `/api/analyze` | POST | 分析 Google Maps 評論 |
+| `/api/health` | GET | 健康檢查 |
+| `/api/debug` | GET | 除錯資訊（部署環境檢查） |
+
+詳細的 API 文件請參考 [`RAILWAY_DEPLOY.md`](RAILWAY_DEPLOY.md)。
 
 ### 方式二：圖形介面（GUI）
 
@@ -197,6 +207,34 @@ Google Maps 頁面採動態載入，程式會自動滾動直到：
 ### AI 分析失敗
 
 確認 `.env` 中已正確設定 `OPENAI_API_KEY`，並確認所選模型的 API 可正常連線。
+
+### Railway 部署問題
+
+如果在 Railway 上遇到「找不到評論分頁」或其他問題，請參考 [`RAILWAY_DEPLOY.md`](RAILWAY_DEPLOY.md) 的詳細排除指南。
+
+常見問題包括：
+- URL 解析錯誤：確認使用完整的 Google Maps URL
+- 頁面載入超時：檢查 Railway 環境的網路狀況
+- Playwright 安裝失敗：確認 `railway.json` 建置命令正確
+
+---
+
+## 測試工具
+
+### 本地無頭模式測試
+在部署前，可以使用測試腳本驗證無頭模式是否正常：
+
+```bash
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\python.exe test_headless.py
+
+# Linux/Mac
+source .venv/bin/activate
+python test_headless.py
+```
+
+此測試會模擬 Railway 等無頭環境，幫助你在部署前發現潛在問題。
 
 ---
 

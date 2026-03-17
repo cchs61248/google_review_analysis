@@ -79,8 +79,15 @@ def analyze():
         
         # 2. 爬取評論
         try:
+            # Railway 環境中強制使用無頭模式
+            is_railway = os.environ.get('RAILWAY_ENVIRONMENT') is not None
+            headless_mode = True if is_railway else not visible
+            
+            if is_railway:
+                logger.info("檢測到 Railway 環境，使用無頭模式")
+            
             scraper = GoogleMapsScraper(
-                headless=not visible,
+                headless=headless_mode,
                 user_data_dir=None
             )
             reviews = scraper.scrape_reviews(full_url, max_reviews=limit)
@@ -143,6 +150,36 @@ def health():
         'status': 'ok',
         'message': 'Google Maps 評論分析器 API 運行中'
     })
+
+@app.route('/api/debug', methods=['GET'])
+def debug():
+    """除錯資訊端點"""
+    import platform
+    import subprocess
+    
+    debug_info = {
+        'platform': platform.platform(),
+        'python_version': platform.python_version(),
+        'is_railway': os.environ.get('RAILWAY_ENVIRONMENT') is not None,
+        'has_openai_key': bool(os.environ.get('OPENAI_API_KEY')),
+        'port': os.environ.get('PORT', '5000'),
+    }
+    
+    # 檢查 Playwright 是否安裝
+    try:
+        result = subprocess.run(
+            ['playwright', '--version'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        debug_info['playwright_installed'] = True
+        debug_info['playwright_version'] = result.stdout.strip()
+    except Exception:
+        debug_info['playwright_installed'] = False
+        debug_info['playwright_version'] = None
+    
+    return jsonify(debug_info)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
