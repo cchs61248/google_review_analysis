@@ -156,6 +156,33 @@ class MapsPageHandler:
                 return True
             else:
                 logger.warning("無法自動切換到評論分頁")
+                # 記錄 HTML 結構以供除錯
+                try:
+                    logger.info("開始擷取頁面 HTML 結構以供除錯...")
+                    
+                    # 嘗試抓取包含「評論」字眼的元素的 HTML
+                    for text in SELECTORS["review_tab_labels"]:
+                        elements = page.locator(f'*:has-text("{text}")')
+                        count = elements.count()
+                        logger.info(f"找到 {count} 個包含「{text}」文字的元素")
+                        
+                        # 只印出最深層的幾個元素，避免印出整個 body
+                        # 我們從後面往前取，因為後面的通常是比較深層的元素
+                        for i in range(max(0, count - 5), count):
+                            try:
+                                el = elements.nth(i)
+                                tag_name = el.evaluate('el => el.tagName')
+                                class_name = el.get_attribute('class') or ''
+                                outer_html = el.evaluate('el => el.outerHTML')
+                                # 限制長度避免 log 太長
+                                if len(outer_html) > 500:
+                                    outer_html = outer_html[:500] + '...'
+                                logger.info(f"元素 [{tag_name}] class='{class_name}': {outer_html}")
+                            except Exception:
+                                pass
+                except Exception as e:
+                    logger.warning(f"擷取 HTML 結構時發生錯誤: {e}")
+
                 # 在無頭模式下，即使找不到 tab，也嘗試繼續（可能頁面結構不同）
                 if headless:
                     logger.info("無頭模式：嘗試繼續處理...")
