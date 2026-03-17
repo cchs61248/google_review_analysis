@@ -157,7 +157,12 @@ function createReviewElement(review) {
         const dishesContainer = document.createElement('div');
         dishesContainer.className = 'review-dishes';
         
-        review.suggested_dishes.forEach(dish => {
+        // 處理陣列或字串格式
+        const dishes = Array.isArray(review.suggested_dishes) 
+            ? review.suggested_dishes 
+            : review.suggested_dishes.split(/[,、]/).map(d => d.trim()).filter(d => d);
+        
+        dishes.forEach(dish => {
             const dishTag = document.createElement('span');
             dishTag.className = 'dish-tag';
             dishTag.textContent = dish;
