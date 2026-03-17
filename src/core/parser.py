@@ -64,14 +64,13 @@ class ReviewParser:
             self.seen_content.add(content_key)
             
             # 6. 組合結果
-            # 若有「建議的餐點」，一併加入評論文字中（同時保留欄位以相容既有流程）
+            # 若有「建議的餐點」，一併加入評論文字中
             merged_text = text
             if suggested_dishes:
                 merged_text = f"{text}\n建議的餐點：{suggested_dishes}".strip()
 
             item = {"rating": rating, "text": merged_text}
-            if suggested_dishes:
-                item["suggested_dishes"] = suggested_dishes
+            # 避免在前端重複顯示，暫不額外輸出 suggested_dishes 欄位
             
             return (item, None)
             
