@@ -2,7 +2,7 @@
 
 自動爬取 Google Maps 餐廳評論，並透過 LLM（大型語言模型）進行 AI 分析，產出推薦餐點、不推薦餐點與整體評價報告。
 
-支援**圖形介面（GUI）**與**命令列（CLI）**兩種使用方式。
+支援 **Web 介面**、**圖形介面（GUI）** 與 **命令列（CLI）** 三種使用方式。
 
 ---
 
@@ -16,7 +16,10 @@
   - 推薦餐點（含好評原因）
   - 不推薦餐點（含負評原因）
   - 整體評價與適合客群
-- **圖形介面**：基於 PySide6 的 GUI，支援深色/淺色主題切換，並可即時查看執行日誌、原始評論與分析報告
+- **多種介面**：
+  - **Web 介面**：響應式網頁，支援電腦與手機瀏覽器訪問
+  - **圖形介面**：基於 PySide6 的 GUI，支援深色/淺色主題切換
+  - **命令列**：輕量化 CLI 工具
 
 ---
 
@@ -24,11 +27,22 @@
 
 ```
 google_map/
+├── app.py                  # Flask Web API 入口
 ├── gui.py                  # GUI 啟動入口
 ├── run.py                  # CLI 啟動入口
 ├── requirements.txt        # 相依套件
+├── Procfile                # Railway/Heroku 部署配置
+├── railway.json            # Railway 專用配置
+├── runtime.txt             # Python 版本指定
 ├── .env                    # 環境變數（請自行建立，不納入版本控制）
 ├── .env.example            # 環境變數範本
+├── templates/              # Web 前端頁面
+│   └── index.html
+├── static/                 # 靜態資源
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── app.js
 ├── log/
 │   └── scraper.log         # 執行日誌
 └── src/
@@ -97,7 +111,30 @@ LOG_LEVEL=INFO
 
 ## 使用方式
 
-### 方式一：圖形介面（GUI）
+### 方式一：Web 介面（推薦）
+
+**本地運行：**
+
+```powershell
+# Windows PowerShell
+.\.venv\Scripts\python.exe app.py
+```
+
+啟動後訪問：
+- 電腦：http://127.0.0.1:5000
+- 手機：http://你的電腦IP:5000（例如：http://192.168.1.100:5000）
+
+**雲端部署：**
+
+詳見 `commands/deploy_vercel.md` 部署指南，推薦使用 Railway 平台。
+
+**特色：**
+- ✅ 響應式設計，支援電腦與手機瀏覽器
+- ✅ 現代化 UI，操作直覺
+- ✅ 即時顯示爬取進度與分析結果
+- ✅ 支援分頁切換查看原始評論與 AI 報告
+
+### 方式二：圖形介面（GUI）
 
 ```bash
 python gui.py
@@ -113,7 +150,7 @@ python gui.py
 | 評論內容 | 顯示收集到的原始評論（含評分星級與推薦餐點） |
 | AI 分析報告 | LLM 產生的 Markdown 格式分析結果，爬取完成後自動切換至此分頁 |
 
-### 方式二：命令列（CLI）
+### 方式三：命令列（CLI）
 
 ```bash
 python run.py <Google Maps 網址> [選項]
@@ -193,5 +230,21 @@ Google Maps 頁面採動態載入，程式會自動滾動直到：
 | `playwright` | 1.58.0 | 瀏覽器自動化（Chromium） |
 | `openai` | 2.24.0 | 呼叫 LLM API（相容 OpenAI 介面） |
 | `PySide6` | 6.10.2 | 圖形介面框架 |
+| `Flask` | 3.0.0 | Web 應用框架 |
+| `flask-cors` | 4.0.0 | 跨域請求支援 |
+| `gunicorn` | 21.2.0 | WSGI HTTP 伺服器（生產環境） |
 | `requests` | 2.32.5 | 短網址解析 |
 | `python-dotenv` | 1.2.2 | 讀取 `.env` 環境變數 |
+
+---
+
+## 部署指南
+
+詳細的部署步驟請參考 **[`commands/deploy_vercel.md`](commands/deploy_vercel.md)**
+
+支援的部署平台：
+- ✅ **Railway**（推薦）：免費額度，支援 Playwright
+- ✅ **Render**：免費方案，支援容器
+- ✅ **Docker**：可移植到任何支援容器的平台
+- ⚠️ **本地運行**：完全免費，需要電腦持續開機
+- ❌ **Vercel**：不支援 Playwright（無瀏覽器環境）

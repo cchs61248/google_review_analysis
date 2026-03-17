@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Maps 評論分析器</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 標題區 -->
+        <header class="header">
+            <div class="header-content">
+                <i class="fas fa-map-marked-alt"></i>
+                <h1>Google Maps 評論分析器</h1>
+            </div>
+            <p class="subtitle">自動爬取評論並透過 AI 產生分析報告</p>
+        </header>
+
+        <!-- 輸入區 -->
+        <div class="input-section">
+            <div class="input-group">
+                <label for="maps-url">
+                    <i class="fas fa-link"></i>
+                    Google Maps 網址
+                </label>
+                <input 
+                    type="text" 
+                    id="maps-url" 
+                    placeholder="貼上 Google Maps 餐廳網址（支援短網址）"
+                    class="input-field"
+                >
+            </div>
+
+            <div class="input-group">
+                <label for="review-limit">
+                    <i class="fas fa-list-ol"></i>
+                    評論數量
+                </label>
+                <input 
+                    type="number" 
+                    id="review-limit" 
+                    value="30" 
+                    min="1" 
+                    max="200"
+                    class="input-field"
+                >
+            </div>
+
+            <button id="analyze-btn" class="btn-primary">
+                <i class="fas fa-search"></i>
+                開始分析
+            </button>
+        </div>
+
+        <!-- 載入中區 -->
+        <div id="loading" class="loading hidden">
+            <div class="spinner"></div>
+            <p class="loading-text">正在爬取評論並進行 AI 分析...</p>
+            <p class="loading-subtext">這可能需要幾分鐘時間，請耐心等待</p>
+        </div>
+
+        <!-- 錯誤訊息區 -->
+        <div id="error" class="error hidden">
+            <i class="fas fa-exclamation-circle"></i>
+            <p id="error-message"></p>
+        </div>
+
+        <!-- 結果區 -->
+        <div id="results" class="results hidden">
+            <!-- 統計資訊 -->
+            <div class="stats">
+                <div class="stat-card">
+                    <i class="fas fa-comments"></i>
+                    <div class="stat-content">
+                        <h3 id="total-reviews">0</h3>
+                        <p>則評論</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分頁標籤 -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="analysis">
+                    <i class="fas fa-chart-line"></i>
+                    AI 分析報告
+                </button>
+                <button class="tab-btn" data-tab="reviews">
+                    <i class="fas fa-comment-dots"></i>
+                    原始評論
+                </button>
+            </div>
+
+            <!-- 分頁內容 -->
+            <div class="tab-content">
+                <!-- AI 分析報告 -->
+                <div id="analysis-tab" class="tab-pane active">
+                    <div class="content-card">
+                        <div id="analysis-content" class="markdown-content"></div>
+                    </div>
+                </div>
+
+                <!-- 原始評論 -->
+                <div id="reviews-tab" class="tab-pane">
+                    <div class="content-card">
+                        <div id="reviews-content" class="reviews-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>使用 Playwright 爬蟲 + LLM 分析技術</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
