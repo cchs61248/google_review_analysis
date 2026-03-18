@@ -6,8 +6,8 @@ from typing import Optional, List, Dict
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLineEdit, QSpinBox, QPushButton, QTextEdit,
-    QLabel, QGroupBox, QCheckBox, QProgressBar,
-    QTabWidget, QMessageBox, QFileDialog, QSplitter
+    QLabel, QGroupBox, QProgressBar,
+    QTabWidget, QMessageBox, QSplitter,
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSettings
 from PySide6.QtGui import QFont, QTextCursor, QIcon
@@ -101,27 +101,14 @@ class MainWindow(QMainWindow):
         input_group.setLayout(input_layout)
         top_layout.addWidget(input_group)
         
-        # 設定區
-        settings_group = QGroupBox("⚙️ 進階設定")
+        settings_group = QGroupBox("⚙️ 說明")
         settings_layout = QVBoxLayout()
-        
-        self.visible_checkbox = QCheckBox("顯示瀏覽器視窗（建議開啟以處理驗證碼）")
-        self.visible_checkbox.setChecked(True)
-        settings_layout.addWidget(self.visible_checkbox)
-        
-        profile_layout = QHBoxLayout()
-        profile_layout.addWidget(QLabel("瀏覽器 Profile:"))
-        self.profile_input = QLineEdit()
-        self.profile_input.setPlaceholderText("選填，用於保留登入狀態")
-        self.profile_input.setReadOnly(True)
-        profile_layout.addWidget(self.profile_input)
-        
-        self.profile_button = QPushButton("瀏覽...")
-        self.profile_button.setMaximumWidth(100)
-        self.profile_button.clicked.connect(self.select_profile_dir)
-        profile_layout.addWidget(self.profile_button)
-        
-        settings_layout.addLayout(profile_layout)
+        hint = QLabel(
+            "評論資料來自 SerpApi（請在 .env 設定 SERPAPI_API_KEY）。\n"
+            "AI 分析需設定 OPENAI_API_KEY。"
+        )
+        hint.setWordWrap(True)
+        settings_layout.addWidget(hint)
         settings_group.setLayout(settings_layout)
         top_layout.addWidget(settings_group)
         
@@ -231,17 +218,6 @@ class MainWindow(QMainWindow):
         self.is_dark_theme = not self.is_dark_theme
         self.apply_theme()
     
-    def select_profile_dir(self):
-        """選擇 Profile 目錄"""
-        directory = QFileDialog.getExistingDirectory(
-            self,
-            "選擇瀏覽器 Profile 目錄",
-            "",
-            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
-        )
-        if directory:
-            self.profile_input.setText(directory)
-    
     def start_scraping(self):
         """開始爬取"""
         url = self.url_input.text().strip()
@@ -251,24 +227,18 @@ class MainWindow(QMainWindow):
         
         # 準備參數
         limit = self.limit_spinbox.value()
-        visible = self.visible_checkbox.isChecked()
-        profile = self.profile_input.text().strip() or None
-        
-        # 更新 UI 狀態
+
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
         self.url_input.setEnabled(False)
         self.limit_spinbox.setEnabled(False)
-        self.visible_checkbox.setEnabled(False)
-        self.profile_input.setEnabled(False)
-        self.profile_button.setEnabled(False)
         
         # 清除舊結果
         self.clear_results()
         
         # 創建工作執行緒
         self.thread = QThread()
-        self.worker = ScraperWorker(url, limit, visible, profile)
+        self.worker = ScraperWorker(url, limit)
         self.worker.moveToThread(self.thread)
         
         # 連接信號
@@ -332,9 +302,6 @@ class MainWindow(QMainWindow):
         self.stop_button.setText("⏹ 停止")  # 恢復按鈕文字
         self.url_input.setEnabled(True)
         self.limit_spinbox.setEnabled(True)
-        self.visible_checkbox.setEnabled(True)
-        self.profile_input.setEnabled(True)
-        self.profile_button.setEnabled(True)
     
     def force_stop_if_needed(self):
         """如果執行緒仍在運行，強制終止"""
@@ -425,8 +392,6 @@ class MainWindow(QMainWindow):
         """儲存使用者設定"""
         self.settings.setValue("url", self.url_input.text())
         self.settings.setValue("limit", self.limit_spinbox.value())
-        self.settings.setValue("visible", self.visible_checkbox.isChecked())
-        self.settings.setValue("profile", self.profile_input.text())
         self.settings.setValue("dark_theme", self.is_dark_theme)
         self.settings.setValue("geometry", self.saveGeometry())
         self.settings.setValue("window_state", self.saveState())
@@ -438,12 +403,6 @@ class MainWindow(QMainWindow):
 
         limit = self.settings.value("limit", 30, type=int)
         self.limit_spinbox.setValue(limit)
-
-        visible = self.settings.value("visible", True, type=bool)
-        self.visible_checkbox.setChecked(visible)
-
-        profile = self.settings.value("profile", "")
-        self.profile_input.setText(profile)
 
         self.is_dark_theme = self.settings.value("dark_theme", True, type=bool)
 

@@ -71,8 +71,7 @@ async function handleAnalyze() {
             },
             body: JSON.stringify({
                 url: url,
-                limit: limit,
-                visible: false
+                limit: limit
             })
         });
 
