@@ -41,7 +41,12 @@ class GoogleMapsScraper:
         self.should_stop = True
         logger.info("收到停止指令")
 
-    def scrape_reviews(self, url: str, max_reviews: int = 50) -> List[Dict]:
+    def scrape_reviews(
+        self,
+        url: str,
+        max_reviews: int = 50,
+        force_refresh: bool = False,
+    ) -> List[Dict]:
         """
         從 Google Maps / 分享網址取得評論。
 
@@ -67,6 +72,7 @@ class GoogleMapsScraper:
                 query,
                 max_reviews,
                 stop_check=lambda: self.should_stop,
+                force_refresh=force_refresh,
             )
         except ValueError as e:
             logger.warning("%s", e)

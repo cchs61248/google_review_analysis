@@ -31,7 +31,7 @@ def index():
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
     """
-    Request: { "url": "...", "limit": 30 }
+    Request: { "url": "...", "limit": 30, "force_refresh": false }
     """
     try:
         data = request.get_json()
@@ -40,7 +40,13 @@ def analyze():
 
         url = data["url"]
         limit = int(data.get("limit", 30))
-        logger.info("收到分析請求: url=%s, limit=%s", url[:80], limit)
+        force_refresh = bool(data.get("force_refresh", False))
+        logger.info(
+            "收到分析請求: url=%s, limit=%s, force_refresh=%s",
+            url[:80],
+            limit,
+            force_refresh,
+        )
 
         try:
             scraper = GoogleMapsScraper()
@@ -48,7 +54,11 @@ def analyze():
             return jsonify({"success": False, "error": str(e)}), 500
 
         try:
-            reviews = scraper.scrape_reviews(url, max_reviews=limit)
+            reviews = scraper.scrape_reviews(
+                url,
+                max_reviews=limit,
+                force_refresh=force_refresh,
+            )
         except Exception as e:
             logger.exception("取得評論失敗: %s", e)
             return jsonify({"success": False, "error": f"取得評論失敗: {e}"}), 500

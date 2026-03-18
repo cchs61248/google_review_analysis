@@ -49,6 +49,17 @@
                 >
             </div>
 
+            <div class="input-group">
+                <label class="toggle-label" for="force-refresh">
+                    <i class="fas fa-rotate-right"></i>
+                    更新數據（略過快取）
+                </label>
+                <div class="toggle-row">
+                    <input type="checkbox" id="force-refresh" class="toggle-checkbox">
+                    <span class="toggle-hint">開啟時將不從 Redis 讀取，直接重新抓取最新評論</span>
+                </div>
+            </div>
+
             <button id="analyze-btn" class="btn-primary">
                 <i class="fas fa-search"></i>
                 開始分析

@@ -104,6 +104,7 @@ def fetch_reviews(
     query: str,
     limit: int,
     stop_check: OptionalStopCheck = None,
+    force_refresh: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     以查詢字串（店名或 Maps URL）取得評論列表。
@@ -121,7 +122,7 @@ def fetch_reviews(
     next_token: Optional[str] = None
 
     cache = get_reviews_cache()
-    cached = cache.get(data_id)
+    cached = None if force_refresh else cache.get(data_id)
     if cached:
         review_list = list(cached.reviews)
         next_token = cached.next_token
@@ -143,7 +144,10 @@ def fetch_reviews(
                 review_list.append(row)
 
     if not cached:
-        logger.info("redis 中沒有 data_id，開始拉取評論")
+        if force_refresh:
+            logger.info("已啟用 force_refresh，略過 redis 讀取並開始拉取評論")
+        else:
+            logger.info("redis 中沒有 data_id，開始拉取評論")
         results = client.search(
             {
                 "engine": "google_maps_reviews",

@@ -3,6 +3,7 @@
 // 取得 DOM 元素
 const mapsUrlInput = document.getElementById('maps-url');
 const reviewLimitInput = document.getElementById('review-limit');
+const forceRefreshInput = document.getElementById('force-refresh');
 const analyzeBtn = document.getElementById('analyze-btn');
 const loadingSection = document.getElementById('loading');
 const errorSection = document.getElementById('error');
@@ -44,6 +45,7 @@ tabBtns.forEach(btn => {
 async function handleAnalyze() {
     const url = mapsUrlInput.value.trim();
     const limit = parseInt(reviewLimitInput.value);
+    const forceRefresh = Boolean(forceRefreshInput && forceRefreshInput.checked);
 
     // 驗證輸入
     if (!url) {
@@ -71,7 +73,8 @@ async function handleAnalyze() {
             },
             body: JSON.stringify({
                 url: url,
-                limit: limit
+                limit: limit,
+                force_refresh: forceRefresh
             })
         });
 
