@@ -80,6 +80,7 @@ test-results/
 # 資料檔案
 *.csv
 *.json
+!vercel.json
 *.xlsx
 data/
 output/
