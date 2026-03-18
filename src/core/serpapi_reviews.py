@@ -10,6 +10,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 import serpapi
 
+from ..utils.review_cache import get_reviews_cache
+
 logger = logging.getLogger(__name__)
 
 OptionalStopCheck = Optional[Callable[[], bool]]
@@ -115,16 +117,17 @@ def fetch_reviews(
     data_id = _resolve_data_id(client, query)
     logger.info("已取得 data_id，開始拉取評論（目標 %s 則）", limit)
 
-    results = client.search(
-        {
-            "engine": "google_maps_reviews",
-            "data_id": data_id,
-            "hl": "zh-tw",
-            "sort_by": "newestFirst",
-        }
-    )
-
     review_list: List[Dict[str, Any]] = []
+    next_token: Optional[str] = None
+
+    cache = get_reviews_cache()
+    cached = cache.get(data_id)
+    if cached:
+        review_list = list(cached.reviews)
+        next_token = cached.next_token
+        if len(review_list) >= limit:
+            logger.info("review_list 數量大於等於 limit，直接返回 review_list[:limit]")
+            return review_list[:limit]
 
     def consume_page(reviews_raw: Any) -> None:
         nonlocal review_list
@@ -139,19 +142,32 @@ def fetch_reviews(
             if row:
                 review_list.append(row)
 
-    consume_page(results.get("reviews") or [])
+    if not cached:
+        logger.info("redis 中沒有 data_id，開始拉取評論")
+        results = client.search(
+            {
+                "engine": "google_maps_reviews",
+                "data_id": data_id,
+                "hl": "zh-tw",
+                "sort_by": "newestFirst",
+            }
+        )
+        consume_page(results.get("reviews") or [])
 
     while len(review_list) < limit:
         if stop_check and stop_check():
             logger.info("已收到停止信號，中斷評論分頁")
             break
 
-        pag = results.get("serpapi_pagination") or {}
-        if not isinstance(pag, dict):
-            break
-        next_token = pag.get("next_page_token")
-        if not next_token:
-            break
+        try:
+            pag = results.get("serpapi_pagination") or {}
+            if not isinstance(pag, dict):
+                break
+            next_token = pag.get("next_page_token")
+        except:
+            logger.info("review_list數量不足，開始補足評論")
+            if not next_token:
+                break
 
         results = client.search(
             {
@@ -165,4 +181,8 @@ def fetch_reviews(
         )
         consume_page(results.get("reviews") or [])
 
+    pag = results.get("serpapi_pagination") or {}
+    next_token = pag.get("next_page_token")
+
+    cache.set(data_id, review_list, next_token)
     return review_list[:limit]

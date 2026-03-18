@@ -9,17 +9,34 @@ from dotenv import load_dotenv
 # 載入環境變數
 load_dotenv()
 
+# python-dotenv 會把「KEY = value」解析成 key 名稱尾端帶空白。
+# 這裡做容錯讀取，避免因 .env 格式而讀不到設定。
+def _getenv_stripped(key: str, default: str | None = None) -> str | None:
+    v = os.getenv(key)
+    if v is None:
+        v = os.getenv(f"{key} ")
+    if v is None:
+        return default
+    return str(v).strip().strip('"').strip("'")
+
+
 # ==================== API 配置 ====================
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3-flash")
+OPENAI_API_KEY = _getenv_stripped("OPENAI_API_KEY")
+OPENAI_BASE_URL = _getenv_stripped("OPENAI_BASE_URL", "https://api.openai.com/v1")
+LLM_MODEL = _getenv_stripped("LLM_MODEL", "gemini-3-flash")
 STREAM = False
 
 # SerpApi（Google Maps 評論 API）
-SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")
+SERPAPI_API_KEY = _getenv_stripped("SERPAPI_API_KEY")
+
+# ==================== Redis 配置（評論快取） ====================
+REDIS_HOST = _getenv_stripped("REDIS_HOST", "127.0.0.1")
+REDIS_PORT = int(_getenv_stripped("REDIS_PORT", "6379") or "6379")
+REDIS_DB = int(_getenv_stripped("REDIS_DB", "1") or "1")
+REDIS_PASSWORD = _getenv_stripped("REDIS_PASSWORD") or None
 
 # ==================== 日誌配置 ====================
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+LOG_LEVEL = _getenv_stripped("LOG_LEVEL", "INFO")
 LOG_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 LOG_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
