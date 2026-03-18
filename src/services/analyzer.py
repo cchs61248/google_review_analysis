@@ -17,7 +17,7 @@ class ReviewAnalyzer:
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         model: Optional[str] = None,
-        use_stream: bool = True,
+        use_stream: bool = False,
     ):
         """
         初始化分析器
