@@ -3,6 +3,7 @@
 統一管理所有配置常數和環境變數
 """
 import os
+from pickle import FALSE
 from dotenv import load_dotenv
 
 # 載入環境變數
@@ -12,6 +13,7 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-3-flash")
+STREAM = False
 
 # SerpApi（Google Maps 評論 API）
 SERPAPI_API_KEY = os.getenv("SERPAPI_API_KEY")

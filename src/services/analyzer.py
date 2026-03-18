@@ -4,7 +4,7 @@
 import logging
 from typing import List, Dict, Optional
 from openai import OpenAI
-from ..config import OPENAI_API_KEY, OPENAI_BASE_URL, LLM_MODEL
+from ..config import OPENAI_API_KEY, OPENAI_BASE_URL, LLM_MODEL, STREAM
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class ReviewAnalyzer:
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         model: Optional[str] = None,
-        use_stream: bool = False,
+        use_stream: bool = STREAM,
     ):
         """
         初始化分析器
