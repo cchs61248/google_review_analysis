@@ -143,6 +143,8 @@ def fetch_reviews(
             if row:
                 review_list.append(row)
 
+    results: Optional[Dict[str, Any]] = None
+
     if not cached:
         if force_refresh:
             logger.info("已啟用 force_refresh，略過 redis 讀取並開始拉取評論")
@@ -163,15 +165,17 @@ def fetch_reviews(
             logger.info("已收到停止信號，中斷評論分頁")
             break
 
-        try:
+        page_token: Optional[str]
+        if results is None:
+            page_token = next_token
+        else:
             pag = results.get("serpapi_pagination") or {}
             if not isinstance(pag, dict):
                 break
-            next_token = pag.get("next_page_token")
-        except:
-            logger.info("review_list數量不足，開始補足評論")
-            if not next_token:
-                break
+            page_token = pag.get("next_page_token")
+
+        if not page_token:
+            break
 
         results = client.search(
             {
@@ -179,14 +183,21 @@ def fetch_reviews(
                 "data_id": data_id,
                 "hl": "zh-tw",
                 "sort_by": "newestFirst",
-                "next_page_token": next_token,
+                "next_page_token": page_token,
                 "num": 20,
             }
         )
         consume_page(results.get("reviews") or [])
 
-    pag = results.get("serpapi_pagination") or {}
-    next_token = pag.get("next_page_token")
+    if results is not None:
+        pag_out = results.get("serpapi_pagination") or {}
+        next_token_out = (
+            pag_out.get("next_page_token")
+            if isinstance(pag_out, dict)
+            else None
+        )
+    else:
+        next_token_out = next_token
 
-    cache.set(data_id, review_list, next_token)
+    cache.set(data_id, review_list, next_token_out)
     return review_list[:limit]
