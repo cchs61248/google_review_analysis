@@ -29,6 +29,26 @@ def extract_q_from_search_url(search_url: str) -> str:
     return unquote(raw_q).replace("+", " ").strip()
 
 
+def _place_segment_business_name_only(decoded_segment: str) -> str:
+    """
+    Google 常把「郵遞區號＋地址＋店名」塞進單一路徑段，例如：
+    40360臺中市西區公正路136號增聚發大旺蔬食(素食)茶堂
+    台灣門牌多以「號」結尾，其後視為店家名稱；若無則維持原字串。
+    """
+    print("decoded_segment: ", decoded_segment)
+    s = decoded_segment.strip()
+    if not s:
+        return s
+    for sep in ("號", "号"):
+        if sep not in s:
+            continue
+        head, tail = s.rsplit(sep, 1)
+        tail = tail.strip()
+        if tail:
+            return tail
+    return s
+
+
 def _place_name_from_maps_url(url: str) -> Optional[str]:
     """從 /maps/place/<名稱>/ 路徑擷取店名。"""
     if "/maps/place/" not in url:
@@ -43,7 +63,8 @@ def _place_name_from_maps_url(url: str) -> Optional[str]:
         # 座標開頭如 @22.9,120.2 表示沒有可讀店名
         if re.match(r"^[\d.\-+,]+$", segment):
             return None
-        return unquote(segment.replace("+", " ")).strip()
+        decoded = unquote(segment.replace("+", " ")).strip()
+        return _place_segment_business_name_only(decoded)
     except (IndexError, ValueError):
         return None
 
