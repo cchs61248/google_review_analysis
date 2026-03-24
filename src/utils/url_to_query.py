@@ -29,16 +29,25 @@ def extract_q_from_search_url(search_url: str) -> str:
     return unquote(raw_q).replace("+", " ").strip()
 
 
+# maps?q= 分享連結解碼後常見無義尾段，例如「…蔬食館 號 No」「… + 號 No」
+_RE_MAPS_Q_TRAILING_JUNK = re.compile(
+    r"(?:\s*\+\s*)*\s*[號号]\s*No\s*$",
+    re.IGNORECASE,
+)
+
+
 def _place_segment_business_name_only(decoded_segment: str) -> str:
     """
     Google 常把「郵遞區號＋地址＋店名」塞進單一路徑段，例如：
     40360臺中市西區公正路136號增聚發大旺蔬食(素食)茶堂
     台灣門牌多以「號」結尾，其後視為店家名稱；若無則維持原字串。
     """
-    print("decoded_segment: ", decoded_segment)
     s = decoded_segment.strip()
     if not s:
         return s
+    s = _RE_MAPS_Q_TRAILING_JUNK.sub("", s).strip()
+    if not s:
+        return decoded_segment.strip()
     for sep in ("號", "号"):
         if sep not in s:
             continue
@@ -110,6 +119,16 @@ def url_to_search_query(url: str) -> str:
     name = _place_name_from_maps_url(final)
     if name:
         return name
+
+    # 短鏈常轉成 https://www.google.com/maps?q=...（path 為 /maps，沒有 /maps/ 結尾斜線）
+    if "google." in host and "/maps/place/" not in final:
+        path_only = (parsed.path or "").rstrip("/")
+        if path_only == "/maps":
+            params = parse_qs(parsed.query)
+            raw_q = (params.get("q") or [""])[0].strip()
+            if raw_q:
+                decoded_q = unquote(raw_q).replace("+", " ").strip()
+                return _place_segment_business_name_only(decoded_q)
 
     if "/maps/" in final or "maps.google" in host or "google.com/maps" in final:
         # 僅座標、ftid 等：整段 URL 給 SerpApi
